@@ -1,0 +1,446 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — ExpenseBook{% endblock %}
+{% block header_title %}Financial Command Center{% endblock %}
+
+{% block content %}
+<!-- Welcome & AI Advisor Banner -->
+<div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.15) 100%); border-color: rgba(99, 102, 241, 0.3);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 52px; height: 52px; border-radius: var(--radius-md); background: var(--grad-ai); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);">
+                <i data-feather="cpu"></i>
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h2 style="font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0;">AI Financial Health: {{ ai_health.health_score }}/100</h2>
+                    <span class="category-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-weight: 800;">
+                        Grade {{ ai_health.grade }}
+                    </span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">
+                    {{ ai_health.status_text }} — Powered by offline PyTorch Multi-Head Attention Transformers.
+                </p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px;">
+            <a href="{{ url_for('advisor_hub') }}" class="btn btn-ai btn-sm">
+                <i data-feather="message-square"></i>
+                <span>Open AI Advisor</span>
+            </a>
+            <button class="btn btn-outline btn-sm" data-modal-target="quickAddExpenseModal">
+                <i data-feather="plus"></i>
+                <span>Log Expense</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Primary KPI Cards -->
+<div class="grid-4" style="margin-bottom: 24px;">
+    <!-- KPI 1: Spent This Month -->
+    <div class="card kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-label">Month Spending</span>
+            <div class="kpi-icon"><i data-feather="arrow-up-right" style="color: var(--danger);"></i></div>
+        </div>
+        <div class="kpi-value">{{ current_user.currency }}{{ "{:,.2f}".format(total_spent) }}</div>
+        <div class="kpi-footer">
+            <span>Budget: {{ current_user.currency }}{{ "{:,.0f}".format(total_budget) }}</span>
+            <span style="margin-left: auto; font-weight: 600; color: {% if total_spent > total_budget %}var(--danger){% else %}var(--success){% endif %};">
+                {{ "{:.0f}".format((total_spent / total_budget * 100) if total_budget > 0 else 0) }}% used
+            </span>
+        </div>
+    </div>
+
+    <!-- KPI 2: Monthly Income -->
+    <div class="card kpi-card kpi-income">
+        <div class="kpi-header">
+            <span class="kpi-label">Monthly Inflow</span>
+            <div class="kpi-icon"><i data-feather="arrow-down-left" style="color: var(--success);"></i></div>
+        </div>
+        <div class="kpi-value">{{ current_user.currency }}{{ "{:,.2f}".format(actual_income) }}</div>
+        <div class="kpi-footer">
+            <span style="color: var(--success);">● Active & Steady</span>
+            <span style="margin-left: auto;">Surplus: {{ current_user.currency }}{{ "{:,.0f}".format(net_savings) }}</span>
+        </div>
+    </div>
+
+    <!-- KPI 3: Savings Rate -->
+    <div class="card kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-label">Savings Rate</span>
+            <div class="kpi-icon"><i data-feather="shield" style="color: var(--primary-light);"></i></div>
+        </div>
+        <div class="kpi-value">{{ savings_rate }}%</div>
+        <div class="kpi-footer">
+            <span>Target: 20.0%</span>
+            <span style="margin-left: auto; color: {% if savings_rate >= 20 %}var(--success){% else %}var(--warning){% endif %}; font-weight: 600;">
+                {% if savings_rate >= 20 %}Optimal{% else %}Needs Boost{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- KPI 4: Financial Health Score -->
+    <div class="card kpi-card kpi-ai">
+        <div class="kpi-header">
+            <span class="kpi-label">Health Score</span>
+            <div class="kpi-icon"><i data-feather="award" style="color: var(--accent-cyan);"></i></div>
+        </div>
+        <div class="kpi-value" style="color: var(--accent-cyan);">{{ ai_health.health_score }} <span style="font-size: 16px; color: var(--text-muted);">/100</span></div>
+        <div class="kpi-footer">
+            <span>Grade {{ ai_health.grade }}</span>
+            <span style="margin-left: auto; color: #06b6d4;">8 Vitals Evaluated</span>
+        </div>
+    </div>
+</div>
+
+<!-- Role-Tailored Financial Command Widget -->
+{% if current_user.is_student and 'student' in role_stats %}
+<!-- STUDENT HERO CARD: Pocket Money & Allowance Tracker (PDF Page 4) -->
+<div class="card" style="margin-bottom: 24px; border-color: rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);">
+    <div class="card-header" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 42px; height: 42px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; color: #34d399; font-size: 20px;">
+                <i data-feather="book-open"></i>
+            </div>
+            <div>
+                <div class="card-title" style="color: #34d399;">
+                    <span>Student Pocket Money &amp; Allowance Monitor</span>
+                </div>
+                <div class="card-subtitle">
+                    {{ current_user.institution or 'College Campus' }} &bull; Allowance &amp; Daily Burn Rate Control
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('student_hub') }}" class="btn btn-sm" style="background: #10b981; color: #fff; border: none; font-weight: 700;">
+                <i data-feather="target"></i>
+                <span>Pocket &amp; Goals Hub &rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Student Quick Metrics -->
+    <div class="grid-4" style="margin-bottom: 20px;">
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Total Allowance</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(actual_income) }}</div>
+            <div style="font-size: 11px; color: #34d399; margin-top: 2px;">● Monthly Inflow</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Pocket Spent</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(total_spent) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ role_stats.student.burn_rate_pct }}% of allowance</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Remaining Balance</div>
+            <div style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(role_stats.student.pocket_money_remaining) }}</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">For next {{ role_stats.student.days_left }} days</div>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.12); padding: 14px; border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.3);">
+            <div style="font-size: 11px; text-transform: uppercase; color: #6ee7b7; font-weight: 700;">Safe Daily Spend</div>
+            <div style="font-size: 20px; font-weight: 800; color: #34d399; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(role_stats.student.safe_daily_spend) }} <span style="font-size: 12px; font-weight: 500;">/day</span></div>
+            <div style="font-size: 11px; color: #a7f3d0; margin-top: 2px;">
+                {% if role_stats.student.is_overburning %}
+                ⚠️ Pace yourself!
+                {% else %}
+                ✅ On track!
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Allowance Pace Meter -->
+    <div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">
+            <span>Allowance Burn vs Month Elapsed</span>
+            <span>Spent {{ role_stats.student.burn_rate_pct }}% vs Month Elapsed {{ role_stats.student.month_elapsed_pct }}%</span>
+        </div>
+        <div style="height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; position: relative;">
+            <div style="width: {{ role_stats.student.burn_rate_pct }}%; height: 100%; background: {% if role_stats.student.is_overburning %}#ef4444{% else %}#10b981{% endif %}; border-radius: 999px;"></div>
+        </div>
+    </div>
+</div>
+
+{% elif current_user.is_freelancer and 'freelancer' in role_stats %}
+<!-- FREELANCER HERO CARD: Business Bookkeeping & Tax Deductions (PDF Page 4) -->
+<div class="card" style="margin-bottom: 24px; border-color: rgba(245, 158, 11, 0.4); background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.95) 100%);">
+    <div class="card-header" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 42px; height: 42px; border-radius: var(--radius-md); background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.4); display: flex; align-items: center; justify-content: center; color: #fbbf24; font-size: 20px;">
+                <i data-feather="briefcase"></i>
+            </div>
+            <div>
+                <div class="card-title" style="color: #fbbf24;">
+                    <span>Freelance &amp; Small Business Bookkeeping Hub</span>
+                </div>
+                <div class="card-subtitle">
+                    {{ current_user.business_name or 'Independent Studio' }} &bull; Tax Deductible Expenses &amp; Client Invoicing
+                </div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+            <a href="{{ url_for('export_tax_schedule') }}" class="btn btn-sm btn-outline" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                <i data-feather="download"></i>
+                <span>Tax CSV Export</span>
+            </a>
+            <a href="{{ url_for('bookkeeping') }}" class="btn btn-sm" style="background: #f59e0b; color: #000; border: none; font-weight: 700;">
+                <i data-feather="file-text"></i>
+                <span>Full Ledger &rarr;</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Freelancer Quick Metrics -->
+    <div class="grid-4" style="margin-bottom: 16px;">
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Tax Deductible Outflow</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fbbf24; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(role_stats.freelancer.deductible_monthly) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ role_stats.freelancer.business_ratio_pct }}% of all spending</div>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.12); padding: 14px; border-radius: var(--radius-md); border: 1px solid rgba(245, 158, 11, 0.3);">
+            <div style="font-size: 11px; text-transform: uppercase; color: #fde68a; font-weight: 700;">Est. Tax Write-Off Savings</div>
+            <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(role_stats.freelancer.est_tax_savings_monthly) }}</div>
+            <div style="font-size: 11px; color: #6ee7b7; margin-top: 2px;">Calculated @ 25% tax bracket</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Client Retainers Inflow</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;">{{ current_user.currency }}{{ "{:,.2f}".format(actual_income) }}</div>
+            <div style="font-size: 11px; color: #34d399; margin-top: 2px;">Active project billings</div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Active Clients</div>
+            <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 4px;">{{ role_stats.freelancer.client_count }} Clients</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Overhead &amp; Client Projects</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 50/30/20 Rule Breakdown Widget -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <div>
+            <div class="card-title">
+                <i data-feather="pie-chart" style="color: var(--accent-cyan);"></i>
+                <span>50 / 30 / 20 Financial Rule Compliance</span>
+            </div>
+            <div class="card-subtitle">Real-time breakdown of your income into Essentials (Needs), Lifestyle (Wants), and Future (Savings)</div>
+        </div>
+        <a href="{{ url_for('advisor_hub') }}" class="btn btn-outline btn-sm">Advisor Analysis &rarr;</a>
+    </div>
+
+    <!-- Multi-segmented Progress Bar -->
+    <div style="display: flex; height: 16px; border-radius: var(--radius-full); overflow: hidden; margin-bottom: 16px; background: rgba(255,255,255,0.05);">
+        <div style="width: {{ ai_health.rule_50_30_20.needs.actual_pct }}%; background: #3b82f6;" title="Needs: {{ ai_health.rule_50_30_20.needs.actual_pct }}%"></div>
+        <div style="width: {{ ai_health.rule_50_30_20.wants.actual_pct }}%; background: #ec4899;" title="Wants: {{ ai_health.rule_50_30_20.wants.actual_pct }}%"></div>
+        <div style="width: {{ ai_health.rule_50_30_20.savings.actual_pct }}%; background: #10b981;" title="Savings: {{ ai_health.rule_50_30_20.savings.actual_pct }}%"></div>
+    </div>
+
+    <div class="grid-3">
+        <!-- Needs -->
+        <div style="padding: 14px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: var(--radius-md);">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #93c5fd; margin-bottom: 4px;">
+                <span>Needs (Target 50%)</span>
+                <span>{{ ai_health.rule_50_30_20.needs.actual_pct }}%</span>
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff;">{{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.needs.actual) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Target: {{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.needs.target_amount) }}</div>
+        </div>
+
+        <!-- Wants -->
+        <div style="padding: 14px; background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.2); border-radius: var(--radius-md);">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #f472b6; margin-bottom: 4px;">
+                <span>Wants (Target 30%)</span>
+                <span>{{ ai_health.rule_50_30_20.wants.actual_pct }}%</span>
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff;">{{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.wants.actual) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Target: {{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.wants.target_amount) }}</div>
+        </div>
+
+        <!-- Savings -->
+        <div style="padding: 14px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md);">
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; color: #6ee7b7; margin-bottom: 4px;">
+                <span>Savings (Target 20%)</span>
+                <span>{{ ai_health.rule_50_30_20.savings.actual_pct }}%</span>
+            </div>
+            <div style="font-size: 18px; font-weight: 800; color: #fff;">{{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.savings.actual) }}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Target: {{ current_user.currency }}{{ "{:,.2f}".format(ai_health.rule_50_30_20.savings.target_amount) }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row: Monthly Trend Line & Category Distribution Doughnut -->
+<div class="grid-aside" style="margin-bottom: 24px;">
+    <!-- Trend Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">
+                    <i data-feather="trending-up" style="color: var(--primary-light);"></i>
+                    <span>Monthly Spending Trend</span>
+                </div>
+                <div class="card-subtitle">Historical outflow patterns over the past 6 months</div>
+            </div>
+            <a href="{{ url_for('analytics_page') }}" class="btn btn-outline btn-sm">Deep Dive &rarr;</a>
+        </div>
+        <div style="height: 280px; position: relative;">
+            <canvas id="monthlyTrendChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Category Doughnut Chart -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">
+                    <i data-feather="pie-chart" style="color: var(--secondary);"></i>
+                    <span>Category Share</span>
+                </div>
+                <div class="card-subtitle">Spending distribution this month</div>
+            </div>
+        </div>
+        <div style="height: 280px; position: relative;">
+            <canvas id="categoryPieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Section: Top Budgets & Recent Expenses Table -->
+<div class="grid-aside">
+    <!-- Recent Transactions Table -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">
+                    <i data-feather="clock" style="color: var(--accent-cyan);"></i>
+                    <span>Recent Transactions</span>
+                </div>
+                <div class="card-subtitle">Latest recorded outflows</div>
+            </div>
+            <a href="{{ url_for('expenses_list') }}" class="btn btn-outline btn-sm">View All &rarr;</a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th style="text-align: right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for exp in recent_expenses %}
+                    <tr>
+                        <td style="font-family: var(--font-mono); font-size: 13px; color: var(--text-muted);">
+                            {{ exp.expense_date.strftime('%b %d') }}
+                        </td>
+                        <td>
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ exp.description }}</div>
+                            {% if exp.is_recurring %}
+                            <span style="font-size: 11px; color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 3px;">
+                                <i data-feather="repeat" style="width: 10px; height: 10px;"></i> Recurring
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="category-badge" style="border-left: 3px solid {{ exp.category.color if exp.category else '#6366f1' }};">
+                                {{ exp.category.name if exp.category else 'Other' }}
+                            </span>
+                        </td>
+                        <td style="text-align: right; font-weight: 700; color: #fff;">
+                            {{ current_user.currency }}{{ "{:,.2f}".format(exp.amount) }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                            No expenses logged yet. Click "Add Expense" to start!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Active Budgets & Goals Column -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Budgets Progress -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">
+                        <i data-feather="target" style="color: var(--warning);"></i>
+                        <span>Budget Caps</span>
+                    </div>
+                    <div class="card-subtitle">Monthly thresholds</div>
+                </div>
+                <a href="{{ url_for('budgets_page') }}" class="btn btn-outline btn-sm">Manage</a>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                {% for b in budget_progress %}
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 6px;">
+                        <span>{{ b.category }}</span>
+                        <span>{{ current_user.currency }}{{ "{:,.0f}".format(b.spent) }} / {{ current_user.currency }}{{ "{:,.0f}".format(b.allocated) }}</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar {{ b.status }}" style="width: {{ b.percentage }}%;"></div>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">
+                    No budgets configured yet.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Financial Goals -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-feather="flag" style="color: var(--success);"></i>
+                    <span>Financial Goals</span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                {% for g in goals %}
+                <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
+                        <span>{{ g.title }}</span>
+                        <span style="color: var(--success);">{{ g.to_dict().progress_percentage }}%</span>
+                    </div>
+                    <div class="progress-container" style="height: 6px; margin-bottom: 6px;">
+                        <div class="progress-bar success" style="width: {{ g.to_dict().progress_percentage }}%;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                        <span>Saved: {{ current_user.currency }}{{ "{:,.0f}".format(g.current_amount) }}</span>
+                        <span>Target: {{ current_user.currency }}{{ "{:,.0f}".format(g.target_amount) }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

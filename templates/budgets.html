@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Budgets — ExpenseBook{% endblock %}
+{% block header_title %}Monthly Budget Planner{% endblock %}
+
+{% block content %}
+<!-- Budget Summary Header -->
+<div class="grid-3" style="margin-bottom: 24px;">
+    <div class="card">
+        <span class="kpi-label">Total Allocated</span>
+        <div class="kpi-value" style="color: var(--primary-light);">{{ current_user.currency }}{{ "{:,.2f}".format(total_allocated) }}</div>
+        <div style="font-size: 12px; color: var(--text-muted);">Cumulative limits across all categories</div>
+    </div>
+
+    <div class="card">
+        <span class="kpi-label">Total Outflow</span>
+        <div class="kpi-value" style="color: {% if total_spent > total_allocated %}var(--danger){% else %}#fff{% endif %};">
+            {{ current_user.currency }}{{ "{:,.2f}".format(total_spent) }}
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+            {{ "{:.1f}".format((total_spent / total_allocated * 100) if total_allocated > 0 else 0) }}% of total budget consumed
+        </div>
+    </div>
+
+    <div class="card">
+        <span class="kpi-label">Net Remaining Buffer</span>
+        <div class="kpi-value" style="color: {% if (total_allocated - total_spent) >= 0 %}var(--success){% else %}var(--danger){% endif %};">
+            {{ current_user.currency }}{{ "{:,.2f}".format(total_allocated - total_spent) }}
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">Available discretionary balance</div>
+    </div>
+</div>
+
+<!-- Category Budgets Grid -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+        <h2 style="font-size: 18px; font-weight: 700; color: #fff;">Category Spending Limits</h2>
+        <p style="font-size: 13px; color: var(--text-muted);">Set and monitor spending ceilings to maintain financial discipline.</p>
+    </div>
+    <button class="btn btn-primary btn-sm" data-modal-target="setBudgetModal">
+        <i data-feather="plus"></i>
+        <span>Set / Adjust Budget</span>
+    </button>
+</div>
+
+<div class="grid-3">
+    {% for card in budget_cards %}
+    <div class="card" style="border-top: 3px solid {{ card.color }};">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; color: {{ card.color }};">
+                    <i data-feather="{{ card.icon }}"></i>
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 15px; color: #fff;">{{ card.category_name }}</div>
+                    <span class="category-badge" style="font-size: 10px; text-transform: uppercase;">{{ card.nature }}</span>
+                </div>
+            </div>
+
+            <button class="btn btn-outline btn-sm" style="padding: 4px 8px;" data-modal-target="budgetModal-{{ card.category_id }}" title="Edit Budget">
+                <i data-feather="edit-2" style="width: 12px; height: 12px;"></i>
+            </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+            <div style="font-size: 20px; font-weight: 800; color: #fff;">
+                {{ current_user.currency }}{{ "{:,.2f}".format(card.spent) }}
+            </div>
+            <div style="font-size: 13px; color: var(--text-muted);">
+                Cap: {{ current_user.currency }}{{ "{:,.0f}".format(card.allocated) }}
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" style="height: 8px; margin-bottom: 10px;">
+            <div class="progress-bar {% if card.percentage > 100 %}danger{% elif card.percentage > 80 %}warning{% else %}success{% endif %}"
+                 style="width: {{ card.percentage }}%;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <span style="color: {% if card.percentage > 100 %}var(--danger){% elif card.percentage > 80 %}var(--warning){% else %}var(--success){% endif %}; font-weight: 600;">
+                {{ card.percentage }}% used
+            </span>
+            <span style="color: var(--text-muted);">
+                Remaining: {{ current_user.currency }}{{ "{:,.2f}".format(card.remaining) }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Edit Budget Modal for this category -->
+    <div id="budgetModal-{{ card.category_id }}" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <span>Adjust Budget: {{ card.category_name }}</span>
+                </div>
+                <button class="btn btn-outline btn-sm" data-modal-close>&times;</button>
+            </div>
+            <form action="{{ url_for('budgets_page', month=month, year=year) }}" method="POST">
+                <input type="hidden" name="category_id" value="{{ card.category_id }}">
+                <div class="form-group">
+                    <label class="form-label">Monthly Allocation ({{ current_user.currency }})</label>
+                    <input type="number" step="10" min="0" name="allocated_amount" class="form-control" value="{{ card.allocated }}" required>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Allocation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Set Budget Modal -->
+<div id="setBudgetModal" class="modal-backdrop">
+    <div class="modal-card">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-feather="target" style="color: var(--primary);"></i>
+                <span>Set Category Budget</span>
+            </div>
+            <button class="btn btn-outline btn-sm" data-modal-close>&times;</button>
+        </div>
+        <form action="{{ url_for('budgets_page', month=month, year=year) }}" method="POST">
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <select name="category_id" class="form-select" required>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Monthly Spending Limit ({{ current_user.currency }})</label>
+                <input type="number" step="10" min="1" name="allocated_amount" class="form-control" placeholder="500" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Budget</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

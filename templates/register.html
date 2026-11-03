@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up & Choose Role — ExpenseBook{% endblock %}
+
+{% block content %}
+<div style="min-height: 85vh; display: flex; align-items: center; justify-content: center; padding: 32px 16px;">
+    <div class="card" style="width: 100%; max-width: 640px; padding: 36px; border-color: rgba(99, 102, 241, 0.3); box-shadow: var(--shadow-lg);">
+        <div style="text-align: center; margin-bottom: 28px;">
+            <div style="width: 56px; height: 56px; border-radius: var(--radius-lg); background: var(--grad-primary); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26px; margin: 0 auto 16px; box-shadow: var(--shadow-glow);">
+                <i data-feather="user-plus"></i>
+            </div>
+            <h1 style="font-size: 26px; font-weight: 800; color: #fff;">Create Your ExpenseBook Account</h1>
+            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 6px;">
+                Select your account role to tailor your financial tools, categories &amp; analytics
+            </p>
+        </div>
+
+        <form action="{{ url_for('register') }}" method="POST">
+            <!-- 3 Roles Selection Tabs / Cards -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label" style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-cyan);">
+                    Choose Your Role (PDF Use Cases):
+                </label>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px;">
+                    <!-- Role: Individual -->
+                    <label class="role-select-card" style="border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.1); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; cursor: pointer; transition: var(--transition);">
+                        <input type="radio" name="role" value="individual" checked style="display: none;" onchange="handleRoleChange('individual')">
+                        <div style="font-size: 20px; color: #818cf8; margin-bottom: 6px;"><i data-feather="user"></i></div>
+                        <div style="font-weight: 700; font-size: 13px; color: #fff;">Individual</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Personal Finance</div>
+                    </label>
+
+                    <!-- Role: Student -->
+                    <label class="role-select-card" style="border: 2px solid var(--border-subtle); background: var(--bg-surface); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; cursor: pointer; transition: var(--transition);">
+                        <input type="radio" name="role" value="student" style="display: none;" onchange="handleRoleChange('student')">
+                        <div style="font-size: 20px; color: #34d399; margin-bottom: 6px;"><i data-feather="book-open"></i></div>
+                        <div style="font-weight: 700; font-size: 13px; color: #fff;">Student</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Pocket Money</div>
+                    </label>
+
+                    <!-- Role: Freelancer -->
+                    <label class="role-select-card" style="border: 2px solid var(--border-subtle); background: var(--bg-surface); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; cursor: pointer; transition: var(--transition);">
+                        <input type="radio" name="role" value="freelancer" style="display: none;" onchange="handleRoleChange('freelancer')">
+                        <div style="font-size: 20px; color: #fbbf24; margin-bottom: 6px;"><i data-feather="briefcase"></i></div>
+                        <div style="font-weight: 700; font-size: 13px; color: #fff;">Freelancer</div>
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Business &amp; Tax</div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Role-Specific Dynamic Fields -->
+            <div id="studentFieldWrap" style="display: none; margin-bottom: 16px;">
+                <div class="form-group">
+                    <label class="form-label">College / University Name</label>
+                    <div style="position: relative;">
+                        <input type="text" name="institution" class="form-control" placeholder="e.g. Metro State University, Stanford, MIT" style="padding-left: 38px;">
+                        <i data-feather="book" style="position: absolute; left: 12px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div id="freelancerFieldWrap" style="display: none; margin-bottom: 16px;">
+                <div class="form-group">
+                    <label class="form-label">Business or Studio Name</label>
+                    <div style="position: relative;">
+                        <input type="text" name="business_name" class="form-control" placeholder="e.g. Vayu Creative Labs LLP" style="padding-left: 38px;">
+                        <i data-feather="award" style="position: absolute; left: 12px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Full Name or Username</label>
+                <div style="position: relative;">
+                    <input type="text" name="username" class="form-control" placeholder="Aarav Sharma" required style="padding-left: 38px;">
+                    <i data-feather="user" style="position: absolute; left: 12px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <div style="position: relative;">
+                    <input type="email" name="email" class="form-control" placeholder="aarav@example.com" required style="padding-left: 38px;">
+                    <i data-feather="mail" style="position: absolute; left: 12px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div style="position: relative;">
+                    <input type="password" name="password" class="form-control" placeholder="••••••••" required style="padding-left: 38px;">
+                    <i data-feather="lock" style="position: absolute; left: 12px; top: 13px; width: 16px; height: 16px; color: var(--text-muted);"></i>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Currency Symbol</label>
+                    <select name="currency" class="form-select">
+                        <option value="₹" selected>₹ (INR) — Indian Rupee</option>
+                        <option value="$">$ (USD)</option>
+                        <option value="€">€ (EUR)</option>
+                        <option value="£">£ (GBP)</option>
+                        <option value="¥">¥ (JPY)</option>
+                        <option value="C$">C$ (CAD)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" id="incomeLabel">Monthly Salary / Inflow</label>
+                    <input type="number" step="500" min="0" name="monthly_income" id="incomeInput" class="form-control" value="60000" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 15px; margin-top: 14px; font-weight: 700;">
+                <span>Create Role Account &amp; Launch Command Center</span>
+                <i data-feather="arrow-right"></i>
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-secondary);">
+            Already have an account or want 1-click test login? 
+            <a href="{{ url_for('login') }}" style="color: var(--primary-light); font-weight: 600; text-decoration: none;">View 3-Role Demo Hub</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function handleRoleChange(role) {
+    const cards = document.querySelectorAll('.role-select-card');
+    cards.forEach(c => {
+        c.style.borderColor = 'var(--border-subtle)';
+        c.style.background = 'var(--bg-surface)';
+    });
+
+    const activeRadio = document.querySelector(`input[name="role"][value="${role}"]`);
+    if (activeRadio) {
+        const parentCard = activeRadio.closest('.role-select-card');
+        if (role === 'individual') {
+            parentCard.style.borderColor = '#6366f1';
+            parentCard.style.background = 'rgba(99, 102, 241, 0.12)';
+        } else if (role === 'student') {
+            parentCard.style.borderColor = '#10b981';
+            parentCard.style.background = 'rgba(16, 185, 129, 0.12)';
+        } else if (role === 'freelancer') {
+            parentCard.style.borderColor = '#f59e0b';
+            parentCard.style.background = 'rgba(245, 158, 11, 0.12)';
+        }
+    }
+
+    const studentWrap = document.getElementById('studentFieldWrap');
+    const freelanceWrap = document.getElementById('freelancerFieldWrap');
+    const incomeLabel = document.getElementById('incomeLabel');
+    const incomeInput = document.getElementById('incomeInput');
+
+    if (role === 'student') {
+        studentWrap.style.display = 'block';
+        freelanceWrap.style.display = 'none';
+        incomeLabel.innerText = 'Monthly Allowance / Pocket Money';
+        if (incomeInput.value === '60000' || incomeInput.value === '150000' || incomeInput.value === '4500' || incomeInput.value === '800') incomeInput.value = '12000';
+    } else if (role === 'freelancer') {
+        studentWrap.style.display = 'none';
+        freelanceWrap.style.display = 'block';
+        incomeLabel.innerText = 'Avg. Monthly Revenue / Retainers';
+        if (incomeInput.value === '60000' || incomeInput.value === '12000' || incomeInput.value === '4500' || incomeInput.value === '7500') incomeInput.value = '150000';
+    } else {
+        studentWrap.style.display = 'none';
+        freelanceWrap.style.display = 'none';
+        incomeLabel.innerText = 'Monthly Salary / Inflow';
+        if (incomeInput.value === '12000' || incomeInput.value === '150000' || incomeInput.value === '800' || incomeInput.value === '7500') incomeInput.value = '60000';
+    }
+}
+</script>
+{% endblock %}

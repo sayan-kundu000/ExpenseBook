@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Business Bookkeeping &amp; Tax Deductions — ExpenseBook{% endblock %}
+{% block header_title %}Freelance &amp; Small Business Bookkeeping{% endblock %}
+
+{% block content %}
+<!-- Freelance Bookkeeping Banner -->
+<div class="card" style="margin-bottom: 24px; border-color: rgba(245, 158, 11, 0.4); background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 54px; height: 54px; border-radius: var(--radius-lg); background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.5); display: flex; align-items: center; justify-content: center; color: #fbbf24; font-size: 26px;">
+                <i data-feather="briefcase"></i>
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h2 style="font-size: 22px; font-weight: 800; color: #fff; margin: 0;">{{ current_user.business_name or current_user.username ~ ' Studio' }}</h2>
+                    <span class="category-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 700;">
+                        💼 ITR &amp; IRS Schedule C Ready
+                    </span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 14px; margin-top: 4px;">
+                    Track small business expenses, calculate estimated tax write-offs &amp; manage client billing (PDF Use Case).
+                </p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-outline" data-modal-target="addClientInvoiceModal" style="border-color: rgba(16, 185, 129, 0.5); color: #34d399; font-weight: 600;">
+                <i data-feather="plus-circle"></i>
+                <span>Log Client Invoice</span>
+            </button>
+            <a href="{{ url_for('export_tax_schedule') }}" class="btn btn-sm btn-outline" style="border-color: rgba(245, 158, 11, 0.5); color: #fbbf24; font-weight: 600;">
+                <i data-feather="download"></i>
+                <span>Download Tax Schedule (CSV)</span>
+            </a>
+            <button class="btn btn-sm" data-modal-target="quickAddExpenseModal" style="background: #f59e0b; color: #000; border: none; font-weight: 700;">
+                <i data-feather="plus"></i>
+                <span>Add Business Expense</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Key Bookkeeping & Tax KPIs -->
+<div class="grid-4" style="margin-bottom: 24px;">
+    <!-- Tax Deductible Total -->
+    <div class="card kpi-card" style="border-color: rgba(245, 158, 11, 0.35);">
+        <div class="kpi-header">
+            <span class="kpi-label">Month Tax Deductible</span>
+            <div class="kpi-icon"><i data-feather="file-text" style="color: #fbbf24;"></i></div>
+        </div>
+        <div class="kpi-value" style="color: #fbbf24;">{{ current_user.currency }}{{ "{:,.2f}".format(deductible_monthly) }}</div>
+        <div class="kpi-footer">
+            <span>Year-to-Date: {{ current_user.currency }}{{ "{:,.0f}".format(deductible_yearly) }}</span>
+        </div>
+    </div>
+
+    <!-- Estimated Tax Savings @ 25% bracket -->
+    <div class="card kpi-card" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.3);">
+        <div class="kpi-header">
+            <span class="kpi-label">Est. Tax Savings (25%)</span>
+            <div class="kpi-icon"><i data-feather="dollar-sign" style="color: #10b981;"></i></div>
+        </div>
+        <div class="kpi-value" style="color: #34d399;">{{ current_user.currency }}{{ "{:,.2f}".format(est_tax_savings_monthly) }}</div>
+        <div class="kpi-footer">
+            <span style="color: #6ee7b7;">● YTD Savings: {{ current_user.currency }}{{ "{:,.0f}".format(est_tax_savings_yearly) }}</span>
+        </div>
+    </div>
+
+    <!-- Monthly Client Revenue / Inflow -->
+    <div class="card kpi-card kpi-income">
+        <div class="kpi-header">
+            <span class="kpi-label">Client Retainer Inflow</span>
+            <div class="kpi-icon"><i data-feather="arrow-down-left" style="color: var(--success);"></i></div>
+        </div>
+        <div class="kpi-value">{{ current_user.currency }}{{ "{:,.2f}".format(total_revenue) }}</div>
+        <div class="kpi-footer">
+            <span style="color: var(--success);">● {{ client_incomes|length }} Invoices Paid</span>
+        </div>
+    </div>
+
+    <!-- Net Business Profit -->
+    <div class="card kpi-card">
+        <div class="kpi-header">
+            <span class="kpi-label">Net Operating Surplus</span>
+            <div class="kpi-icon"><i data-feather="trending-up" style="color: var(--accent-cyan);"></i></div>
+        </div>
+        <div class="kpi-value" style="color: {% if net_profit >= 0 %}#fff{% else %}var(--danger){% endif %};">
+            {{ current_user.currency }}{{ "{:,.2f}".format(net_profit) }}
+        </div>
+        <div class="kpi-footer">
+            <span style="color: var(--accent-cyan);">After all studio expenses</span>
+        </div>
+    </div>
+</div>
+
+<!-- Two-Column Breakdown: Client / Project Allocations & Category Tax Write-Offs -->
+<div class="grid-2" style="margin-bottom: 24px;">
+    <!-- Client / Project Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">
+                    <i data-feather="layers" style="color: #fbbf24;"></i>
+                    <span>Expenses by Client or Project</span>
+                </div>
+                <div class="card-subtitle">Organized billables and client-related investments</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            {% for client_name, client_sum in client_breakdown.items() %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="font-weight: 700; color: #fff; font-size: 14px;">{{ client_name }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                        Est. Tax Write-Off: {{ current_user.currency }}{{ "{:,.2f}".format(client_sum * 0.25) }}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 800; color: #fbbf24; font-size: 15px;">{{ current_user.currency }}{{ "{:,.2f}".format(client_sum) }}</div>
+                    <div style="font-size: 11px; color: var(--text-secondary);">
+                        {{ "{:.0f}".format((client_sum / deductible_monthly * 100) if deductible_monthly > 0 else 0) }}% share
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--text-muted); padding: 24px;">
+                No client-tagged expenses recorded yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Category Deductions Breakdown -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">
+                    <i data-feather="tag" style="color: var(--accent-cyan);"></i>
+                    <span>Tax Deductible Categories</span>
+                </div>
+                <div class="card-subtitle">SaaS, equipment, client meals &amp; overhead</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            {% for cat_name, cat_sum in cat_deductible.items() %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+                <div>
+                    <div style="font-weight: 700; color: #fff; font-size: 14px;">{{ cat_name }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Ordinary business expense</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 800; color: #fff; font-size: 15px;">{{ current_user.currency }}{{ "{:,.2f}".format(cat_sum) }}</div>
+                    <div style="font-size: 11px; color: #34d399;">
+                        -{{ current_user.currency }}{{ "{:,.2f}".format(cat_sum * 0.25) }} tax
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--text-muted); padding: 24px;">
+                No tax-deductible categories logged yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Complete Tax Deductible Ledger Table -->
+<div class="card" style="padding: 0; overflow: hidden; margin-bottom: 32px;">
+    <div style="padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+            <div class="card-title">
+                <i data-feather="file-text" style="color: #fbbf24;"></i>
+                <span>Complete Business &amp; Tax Deductible Ledger</span>
+            </div>
+            <div class="card-subtitle">Ready for Indian Income Tax (ITR / Sec 44ADA) &amp; IRS Schedule C bookkeeping</div>
+        </div>
+        <a href="{{ url_for('export_tax_schedule') }}" class="btn btn-sm btn-outline" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+            <i data-feather="download"></i>
+            <span>Export Tax Schedule (CSV)</span>
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Expense Description</th>
+                    <th>Tax Category</th>
+                    <th>Client / Project</th>
+                    <th>Deductible Status</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="text-align: right;">Est. Tax Saved (25%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for exp in monthly_expenses %}
+                <tr>
+                    <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); white-space: nowrap;">
+                        {{ exp.expense_date.strftime('%Y-%m-%d') }}
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">{{ exp.description }}</div>
+                        {% if exp.notes %}
+                        <div style="font-size: 11px; color: var(--text-muted);">{{ exp.notes }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="category-badge" style="border-left: 3px solid {{ exp.category.color if exp.category else '#6366f1' }}; font-size: 11px;">
+                            {{ exp.category.name if exp.category else 'General' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if exp.client_or_project %}
+                        <span class="category-badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-size: 11px;">
+                            {{ exp.client_or_project }}
+                        </span>
+                        {% else %}
+                        <span style="font-size: 12px; color: var(--text-muted);">&mdash;</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if exp.is_tax_deductible %}
+                        <span class="category-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 11px;">
+                            ● Tax Deductible
+                        </span>
+                        {% else %}
+                        <span class="category-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 11px;">
+                            Personal / Non-deductible
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: #fff; font-size: 14px;">
+                        {{ current_user.currency }}{{ "{:,.2f}".format(exp.amount) }}
+                    </td>
+                    <td style="text-align: right; font-weight: 700; color: {% if exp.is_tax_deductible %}#34d399{% else %}var(--text-muted){% endif %}; font-size: 13px;">
+                        {% if exp.is_tax_deductible %}
+                        +{{ current_user.currency }}{{ "{:,.2f}".format(exp.amount * 0.25) }}
+                        {% else %}
+                        {{ current_user.currency }}0.00
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        No expense entries found for this month.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Log Client Retainer / Invoice Inflow -->
+<div id="addClientInvoiceModal" class="modal-backdrop">
+    <div class="modal-card">
+        <div class="card-header" style="margin-bottom: 16px;">
+            <div class="card-title">
+                <i data-feather="plus-circle" style="color: #34d399;"></i>
+                <span>Log Client Invoice / Retainer Inflow</span>
+            </div>
+            <button class="btn btn-outline btn-sm" data-modal-close style="border: none; font-size: 20px;">&times;</button>
+        </div>
+
+        <form action="{{ url_for('add_income') }}" method="POST">
+            <div class="form-group">
+                <label class="form-label">Client Name / Project Retainer</label>
+                <input type="text" name="source" class="form-control" placeholder="e.g. Acme Corp UX Retainer, Nova FinTech Milestone 2" required>
+            </div>
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label class="form-label">Amount ({{ current_user.currency }})</label>
+                    <input type="number" step="0.01" min="1" name="amount" class="form-control" placeholder="2500.00" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Payment Date</label>
+                    <input type="date" name="income_date" class="form-control" value="{{ today.strftime('%Y-%m-%d') }}" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                <input type="checkbox" name="is_recurring" id="recurringRetainer" value="1" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                <label for="recurringRetainer" style="font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-secondary);">Recurring Monthly Retainer</label>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+                <button type="submit" class="btn" style="background: #10b981; color: #fff; font-weight: 700; border: none; padding: 10px 18px;">
+                    <i data-feather="check"></i>
+                    <span>Record Retainer Revenue</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

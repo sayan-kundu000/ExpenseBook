@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ExpenseBook{% endblock %} — AI Financial Advisor</title>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Feather Icons -->
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    
+    <!-- Chart.js 4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <!-- Custom Fintech Design System CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        window.userCurrency = "{{ current_user.currency if current_user.is_authenticated else '₹' }}";
+    </script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="app-wrapper">
+        <!-- Sidebar Navigation -->
+        {% if current_user.is_authenticated %}
+        <aside class="sidebar {% if request.endpoint == 'advisor_hub' %}collapsed{% endif %}" id="appSidebar">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);">
+                <a href="{{ url_for('dashboard') }}" class="brand" style="margin-bottom: 0;">
+                    <div class="brand-icon" style="font-weight: 800; font-size: 20px; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Plus Jakarta Sans', sans-serif;">
+                        ₹
+                    </div>
+                    <div>
+                        <div class="brand-title">ExpenseBook</div>
+                    </div>
+                    <div class="brand-badge">AI 2.0</div>
+                </a>
+                <button id="sidebarCloseBtn" class="btn btn-outline btn-sm" style="display: none; padding: 4px 8px; font-size: 13px; line-height: 1; border-color: rgba(255,255,255,0.2); color: var(--text-muted);" title="Close Menu">✕</button>
+            </div>
+
+            <nav class="nav-group">
+                <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <i data-feather="grid"></i>
+                    <span>Dashboard</span>
+                </a>
+
+                {% if current_user.is_student %}
+                <a href="{{ url_for('student_hub') }}" class="nav-link {% if request.endpoint == 'student_hub' %}active{% endif %}" style="color: #34d399;">
+                    <i data-feather="book-open" style="color: #34d399;"></i>
+                    <span>Pocket &amp; Goals</span>
+                    <span class="category-badge" style="margin-left: auto; background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 10px; padding: 2px 6px; font-weight: 700;">Campus</span>
+                </a>
+                {% elif current_user.is_freelancer %}
+                <a href="{{ url_for('bookkeeping') }}" class="nav-link {% if request.endpoint == 'bookkeeping' %}active{% endif %}" style="color: #fbbf24;">
+                    <i data-feather="file-text" style="color: #fbbf24;"></i>
+                    <span>Bookkeeping &amp; Tax</span>
+                    <span class="category-badge" style="margin-left: auto; background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 10px; padding: 2px 6px; font-weight: 700;">Schedule C</span>
+                </a>
+                {% endif %}
+
+                <a href="{{ url_for('expenses_list') }}" class="nav-link {% if request.endpoint == 'expenses_list' %}active{% endif %}">
+                    <i data-feather="credit-card"></i>
+                    <span>Expenses</span>
+                </a>
+                <a href="{{ url_for('budgets_page') }}" class="nav-link {% if request.endpoint == 'budgets_page' %}active{% endif %}">
+                    <i data-feather="pie-chart"></i>
+                    <span>Budgets</span>
+                </a>
+                <a href="{{ url_for('analytics_page') }}" class="nav-link {% if request.endpoint == 'analytics_page' %}active{% endif %}">
+                    <i data-feather="bar-chart-2"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="{{ url_for('advisor_hub') }}" class="nav-link ai-link {% if request.endpoint == 'advisor_hub' %}active{% endif %}">
+                    <i data-feather="{% if current_user.is_doom %}shield{% elif current_user.is_student %}book-open{% elif current_user.is_freelancer %}briefcase{% else %}award{% endif %}" style="color: #10b981;"></i>
+                    <span style="font-weight: 800; color: #10b981;">
+                        {% if current_user.is_doom %}Doom GPT{% elif current_user.is_student %}Student FinGPT{% elif current_user.is_freelancer %}Pro FinGPT{% else %}FinGPT{% endif %}
+                    </span>
+                    <span class="sparkle" style="color: #34d399;">✦</span>
+                </a>
+            </nav>
+
+            <div class="user-widget">
+                <div class="user-avatar" style="border: 2px solid {{ current_user.role_color }};">
+                    {{ current_user.username[0]|upper }}
+                </div>
+                <div class="user-meta">
+                    <div class="user-name">{{ current_user.username }}</div>
+                    <div class="user-role" style="display: flex; align-items: center; gap: 4px; color: {{ current_user.role_color }}; font-weight: 700; font-size: 11px;">
+                        <i data-feather="{{ current_user.role_badge_icon }}" style="width: 12px; height: 12px;"></i>
+                        <span>{{ current_user.role_title }}</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">
+                        {% if current_user.is_student and current_user.institution %}
+                            {{ current_user.institution }}
+                        {% elif current_user.is_freelancer and current_user.business_name %}
+                            {{ current_user.business_name }}
+                        {% else %}
+                            {{ current_user.currency }}{{ "{:,.0f}".format(current_user.monthly_income) }}/mo
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout" title="Log Out">
+                    <i data-feather="log-out"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Sidebar Dim Backdrop for overlay drawer mode -->
+        <div id="sidebarBackdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 990; transition: opacity 0.2s ease;"></div>
+        {% endif %}
+
+        <!-- Main Workspace Content (Full-width on Doom GPT) -->
+        <main class="main-content {% if request.endpoint == 'advisor_hub' or not current_user.is_authenticated %}full-width{% endif %}" id="appMainContent">
+            <!-- Topbar Header -->
+            {% if current_user.is_authenticated %}
+            <header class="topbar">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <button id="sidebarToggleBtn" class="btn btn-outline btn-sm" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.04);" title="Toggle Navigation Menu (Dashboard, Expenses, Budgets)">
+                        <i data-feather="menu" style="width: 15px; height: 15px;"></i>
+                        <span style="font-size: 12px; font-weight: 600;">Menu</span>
+                    </button>
+                    <div>
+                        <h1 style="font-size: 18px; font-weight: 700; color: var(--text-primary); margin: 0;">{% block header_title %}Overview{% endblock %}</h1>
+                    </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <!-- 3-Role Quick Switcher (Instant 1-Click Role Switching) -->
+                    <div class="role-switcher-bar" style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-subtle); padding: 3px 6px; border-radius: var(--radius-full);">
+                        <span style="font-size: 10px; color: var(--text-muted); padding: 0 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Role:</span>
+                        <a href="{{ url_for('switch_role', role_name='individual') }}" class="btn btn-sm {% if current_user.is_individual %}btn-primary{% else %}btn-outline{% endif %}" style="padding: 3px 8px; font-size: 11px; border-radius: var(--radius-full); border: none;" title="Switch to Individual Mode">
+                            <i data-feather="user" style="width: 11px; height: 11px;"></i>
+                            <span>Individual</span>
+                        </a>
+                        <a href="{{ url_for('switch_role', role_name='student') }}" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px; border-radius: var(--radius-full); border: none; font-weight: 600; {% if current_user.is_student %}background: #10b981; color: #fff;{% else %}color: var(--text-secondary); background: transparent;{% endif %}" title="Switch to Student Mode">
+                            <i data-feather="book-open" style="width: 11px; height: 11px;"></i>
+                            <span>Student</span>
+                        </a>
+                        <a href="{{ url_for('switch_role', role_name='freelancer') }}" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px; border-radius: var(--radius-full); border: none; font-weight: 600; {% if current_user.is_freelancer %}background: #f59e0b; color: #000;{% else %}color: var(--text-secondary); background: transparent;{% endif %}" title="Switch to Freelancer Mode">
+                            <i data-feather="briefcase" style="width: 11px; height: 11px;"></i>
+                            <span>Freelancer</span>
+                        </a>
+                        <a href="{{ url_for('switch_role', role_name='doom') }}" class="btn btn-sm" style="padding: 3px 8px; font-size: 11px; border-radius: var(--radius-full); border: none; font-weight: 700; {% if current_user.is_doom %}background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; box-shadow: 0 0 10px rgba(16,185,129,0.5);{% else %}color: #34d399; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3);{% endif %}" title="Switch to Dr. Doom (Victor Von Doom) Mode">
+                            <i data-feather="shield" style="width: 11px; height: 11px;"></i>
+                            <span>Dr. Doom</span>
+                        </a>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button id="themeToggleBtn" class="btn btn-outline btn-sm" title="Toggle Obsidian/Light Theme">
+                        <i data-feather="moon"></i>
+                    </button>
+
+                    <!-- Ask AI Quick Trigger -->
+                    <a href="{{ url_for('advisor_hub') }}" class="btn btn-sm" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 700; box-shadow: 0 0 12px rgba(16,185,129,0.35);">
+                        <i data-feather="{% if current_user.is_doom %}shield{% elif current_user.is_student %}book-open{% elif current_user.is_freelancer %}briefcase{% else %}award{% endif %}"></i>
+                        <span>{% if current_user.is_doom %}Doom GPT{% elif current_user.is_student %}Student FinGPT{% elif current_user.is_freelancer %}Pro FinGPT{% else %}FinGPT{% endif %}</span>
+                    </a>
+
+                    <!-- Add Expense Trigger -->
+                    <button class="btn btn-primary btn-sm" data-modal-target="quickAddExpenseModal">
+                        <i data-feather="plus"></i>
+                        <span>Add Expense</span>
+                    </button>
+                </div>
+            </header>
+            {% endif %}
+
+            <!-- Page Container -->
+            <div class="page-container" {% block page_container_attrs %}{% endblock %}>
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="flash-container">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">
+                                    <span>{{ message }}</span>
+                                    <button style="background: none; border: none; color: inherit; cursor: pointer;" onclick="this.parentElement.remove();">&times;</button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Quick Add Expense Modal -->
+    {% if current_user.is_authenticated %}
+    <div id="quickAddExpenseModal" class="modal-backdrop">
+        <div class="modal-card">
+            <div class="card-header" style="margin-bottom: 16px;">
+                <div class="card-title">
+                    <i data-feather="plus-circle" style="color: var(--primary);"></i>
+                    <span>Log New Expense</span>
+                </div>
+                <button class="btn btn-outline btn-sm" data-modal-close style="border: none; font-size: 20px;">&times;</button>
+            </div>
+
+            <form action="{{ url_for('add_expense') }}" method="POST">
+                <div class="form-group">
+                    <label class="form-label">Description & AI Auto-Tag</label>
+                    <input type="text" name="description" class="form-control ai-predict-input" placeholder="e.g. Trader Joe's groceries, Uber ride downtown..." required autocomplete="off">
+                    <div class="ai-prediction-badge-wrap"></div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Amount ({{ current_user.currency }})</label>
+                        <input type="number" step="0.01" min="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <select name="category_id" class="form-select">
+                            <option value="auto">✨ AI Auto-Detect (Transformer)</option>
+                            {% for cat in (categories if categories is defined and categories else all_categories) %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="expense_date" class="form-control" value="{{ today.strftime('%Y-%m-%d') if today is defined else '' }}" required>
+                    </div>
+
+                    <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 32px;">
+                        <input type="checkbox" name="is_recurring" id="quickRecurring" value="1" style="width: 18px; height: 18px; accent-color: var(--primary);">
+                        <label for="quickRecurring" style="font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-secondary);">Recurring Monthly</label>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; background: rgba(245, 158, 11, 0.08); padding: 10px; border-radius: var(--radius-sm); border: 1px solid rgba(245, 158, 11, 0.25);">
+                        <input type="checkbox" name="is_tax_deductible" id="quickTaxDeductible" value="1" {% if current_user.is_freelancer %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #f59e0b;">
+                        <label for="quickTaxDeductible" style="font-size: 13px; font-weight: 700; cursor: pointer; color: #fbbf24;">
+                            💼 Tax Deductible
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Client / Project Tag (Optional)</label>
+                        <input type="text" name="client_or_project" class="form-control" placeholder="e.g. Acme Corp, Nova UI, Overhead">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes (Optional)</label>
+                    <input type="text" name="notes" class="form-control" placeholder="Receipt details, tags, split with friends...">
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" data-modal-close>Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="check"></i>
+                        <span>Save Expense</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if current_user.is_doom %}Doom GPT — Sovereign Financial Advisor
+{% elif current_user.is_student %}Student FinGPT — Campus Financial &amp; Economic Advisor
+{% elif current_user.is_freelancer %}Pro FinGPT — Freelance Business &amp; Tax Advisor
+{% else %}FinGPT — Wealth &amp; Personal Finance Advisor{% endif %}
+{% endblock %}
+
+{% block header_title %}
+{% if current_user.is_doom %}Doom GPT &bull; Imperial Financial Consigliere
+{% elif current_user.is_student %}Student FinGPT &bull; Campus Financial &amp; Economic Advisor
+{% elif current_user.is_freelancer %}Pro FinGPT &bull; Freelance Business &amp; Tax Strategist
+{% else %}FinGPT &bull; Wealth &amp; Personal Finance Consigliere{% endif %}
+{% endblock %}
+
+{% block page_container_attrs %}style="height: calc(100vh - 72px); max-height: calc(100vh - 72px); display: flex; flex-direction: column; padding: 12px 20px; overflow: hidden; box-sizing: border-box;"{% endblock %}
+
+{% block content %}
+<!-- Compact Top Control Ribbon (Height ~42px, Fits Screen Viewport) -->
+<div style="flex-shrink: 0; margin-bottom: 12px; padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.35); background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);">
+            <i data-feather="{% if current_user.is_doom %}shield{% elif current_user.is_student %}book-open{% elif current_user.is_freelancer %}briefcase{% else %}award{% endif %}" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">
+                    {% if current_user.is_doom %}Doom GPT{% elif current_user.is_student %}Student FinGPT{% elif current_user.is_freelancer %}Pro FinGPT{% else %}FinGPT{% endif %}
+                </span>
+                <span class="category-badge" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.5); font-size: 10px; font-weight: 700; padding: 1px 6px;">
+                    {% if current_user.is_doom %}👑 Dr. Doom Edition{% elif current_user.is_student %}🎓 Student Edition{% elif current_user.is_freelancer %}💼 Freelancer Pro{% else %}🛡️ Wealth Edition{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Financial Snapshot Badges -->
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: var(--text-muted);">{% if current_user.is_student %}Monthly Allowance:{% elif current_user.is_freelancer %}Billable Revenue:{% elif current_user.is_doom %}State Revenue:{% else %}Monthly Inflow:{% endif %}</span>
+            <strong style="color: #10b981;">{{ current_user.currency }}{{ "{:,.0f}".format(health_data.monthly_income) }}/mo</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: var(--text-muted);">{% if current_user.is_doom %}War Vault Surplus:{% else %}Net Savings:{% endif %}</span>
+            <strong style="color: #38bdf8;">{{ current_user.currency }}{{ "{:,.0f}".format(health_data.net_savings) }}</strong>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+            <span style="color: var(--text-muted);">Health Score:</span>
+            <strong style="color: #fbbf24;">{{ health_data.health_score }}/100 (Grade {{ health_data.grade }})</strong>
+        </div>
+    </div>
+
+    <!-- Right Controls: Toggle Panel & Status -->
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="toggleVitalsBtn" class="btn btn-outline btn-sm" style="display: flex; align-items: center; gap: 6px; border-color: rgba(16,185,129,0.4); color: #34d399; padding: 4px 10px; font-size: 11px; background: rgba(16,185,129,0.08);" title="Toggle Financial Vitals and Attention Visualizer Panel">
+            <i data-feather="bar-chart-2" style="width: 13px; height: 13px;"></i>
+            <span id="vitalsToggleText">Show Vitals &amp; Attention</span>
+        </button>
+        <span class="category-badge" style="background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 3px 8px; font-size: 11px;">
+            ● AI Core Online
+        </span>
+    </div>
+</div>
+
+<!-- Main Workspace (Screen-Fitting Flex Container) -->
+<div class="doom-gpt-workspace" style="display: flex; gap: 14px; flex: 1; min-height: 0; width: 100%; overflow: hidden; height: 100%;">
+    
+    <!-- Central Hero Chat (ChatGPT Architecture) -->
+    <div id="doomChatMain" style="flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; background: #0b111e; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+        
+        <!-- ChatGPT Header Bar -->
+        <div style="flex-shrink: 0; padding: 10px 18px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 26px; height: 26px; border-radius: 6px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px;">
+                    <i data-feather="terminal" style="width: 14px; height: 14px;"></i>
+                </div>
+                <div>
+                    <span style="font-size: 13px; font-weight: 700; color: #fff;">
+                        {% if current_user.is_doom %}Doom GPT{% elif current_user.is_student %}Student FinGPT{% elif current_user.is_freelancer %}Pro FinGPT{% else %}FinGPT{% endif %}
+                    </span>
+                    <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">
+                        &bull; {% if current_user.is_doom %}Latverian Sovereign Intelligence{% elif current_user.is_student %}Campus Financial &amp; Economic Advisor{% elif current_user.is_freelancer %}Freelance Business &amp; Tax Strategist{% else %}Wealth &amp; Personal Finance Consigliere{% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="clearChatBtn" class="btn btn-outline btn-sm" style="padding: 4px 10px; font-size: 11px; border-color: rgba(255,255,255,0.15);" title="Start clean conversation session">
+                    <i data-feather="refresh-cw" style="width: 12px; height: 12px;"></i>
+                    <span>New Session</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Messages Feed (Scrolls internally, Input stays anchored at bottom) -->
+        <div id="advisorChatMessages" class="chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; min-height: 0;">
+            
+            <!-- Welcome AI Message -->
+            <div class="chat-bubble ai" style="background: #111b2e; border: 1px solid rgba(16, 185, 129, 0.35); max-width: 92%; border-radius: 14px 14px 14px 2px; padding: 18px 22px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 11px; font-weight: 700; color: #34d399; text-transform: uppercase; letter-spacing: 0.5px;">
+                    <i data-feather="shield" style="width: 14px; height: 14px;"></i>
+                    <span>{% if current_user.is_doom %}DOOM GPT &bull; IMPERIAL FINANCIAL CONSIGLIERE{% elif current_user.is_student %}STUDENT FINGPT &bull; CAMPUS FINANCIAL &amp; ECONOMIC ADVISOR{% elif current_user.is_freelancer %}PRO FINGPT &bull; FREELANCE BUSINESS &amp; TAX STRATEGIST{% else %}FINGPT &bull; WEALTH &amp; PERSONAL FINANCE CONSIGLIERE{% endif %}</span>
+                    <span style="margin-left: auto; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 9999px; color: #34d399;">Health Grade {{ health_data.grade }}</span>
+                </div>
+
+                <h3 style="color: #fff; font-size: 17px; margin-bottom: 8px; font-weight: 800;">
+                    {% if current_user.is_doom %}
+                        Hail Victor Von Doom, Sovereign Monarch of Latveria!
+                    {% elif current_user.is_student %}
+                        Welcome {{ current_user.username }}! Your Campus Financial Advisor is Online.
+                    {% elif current_user.is_freelancer %}
+                        Welcome {{ current_user.username }}! Your Freelance Business Strategist is Ready.
+                    {% else %}
+                        Welcome {{ current_user.username }}! Your Financial Consigliere is Online.
+                    {% endif %}
+                </h3>
+                
+                <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                    {% if current_user.is_doom %}
+                        I am <strong>Doom GPT</strong>, your dedicated algorithmic treasurer, engineered to defend, optimize, and weaponize the Latverian Imperial Treasury.
+                    {% elif current_user.is_student %}
+                        I am your dedicated AI Financial Advisor for students. I provide rigorous advice across <strong>Finance, Economics, Accounting, and Business Studies</strong>—including textbook decisions (free PDFs vs. physical copies), pocket money budgeting, campus meal optimization, and student loans.
+                    {% elif current_user.is_freelancer %}
+                        I am your dedicated AI Business Advisor. I assist with <strong>hourly and retainer pricing, Schedule C/tax write-offs, irregular income budgeting, and CapEx equipment decisions</strong>.
+                    {% else %}
+                        I am your dedicated AI Financial Advisor. I analyze your financial inquiries using principles of <strong>Finance, Economics, Accounting, and Business Studies</strong>—from 50/30/20 budgets to rent vs. buy decisions and compound investing.
+                    {% endif %}
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">{% if current_user.is_student %}Monthly Allowance{% elif current_user.is_doom %}State Revenue{% else %}Monthly Inflow{% endif %}</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #10b981;">{{ current_user.currency }}{{ "{:,.2f}".format(health_data.monthly_income) }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Current Burn</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #f43f5e;">{{ current_user.currency }}{{ "{:,.2f}".format(health_data.total_spent) }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">{% if current_user.is_doom %}War Vault Surplus{% else %}Net Savings{% endif %}</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #38bdf8;">{{ current_user.currency }}{{ "{:,.2f}".format(health_data.net_savings) }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Health Score</div>
+                        <div style="font-size: 15px; font-weight: 800; color: #fbbf24;">{{ health_data.health_score }}/100</div>
+                    </div>
+                </div>
+
+                <p style="color: var(--text-secondary); line-height: 1.6; margin: 0;">
+                    {% if current_user.is_doom %}
+                        What strategic directive requires my calculation today, Sire? Ask regarding <strong>Doombot manufacturing</strong>, <strong>asymmetric economic warfare against Reed Richards</strong>, <strong>50/30/20 Sovereign Allocation</strong>, or <strong>Castle Doom reserves</strong>.
+                    {% elif current_user.is_student %}
+                        Feel free to ask questions like: <em>"Should I download free PDFs or buy physical books?"</em>, <em>"How do I allocate my pocket money using 50/30/20?"</em>, or <em>"How do I cut campus food costs?"</em>.
+                    {% elif current_user.is_freelancer %}
+                        Feel free to ask: <em>"How should I price my hourly consulting rate?"</em>, <em>"What expenses can I write off for taxes?"</em>, or <em>"How to handle clients who delay payments?"</em>.
+                    {% else %}
+                        Ask anything regarding <em>"Renting vs buying a home"</em>, <em>"Paying off debt vs investing in index funds"</em>, or <em>"Optimizing my monthly budget"</em>.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Suggested Prompt Chips (Scrollable, dynamically tailored to user role) -->
+        <div class="prompt-chips" style="flex-shrink: 0; display: flex; gap: 8px; overflow-x: auto; padding: 10px 16px; background: rgba(8, 14, 26, 0.95); border-top: 1px solid var(--border-subtle); white-space: nowrap;">
+            {% if current_user.is_student %}
+            <span class="chip" data-prompt="I want to stay budget-friendly & want to buy some books. Should I focus on downloading free pdfs or on buying physical copies?" style="border-color: rgba(16,185,129,0.35); color: #34d399;">📚 Free PDFs vs Physical Books</span>
+            <span class="chip" data-prompt="Audit my student budget and show me how to allocate pocket money using the 50/30/20 rule">🎓 Student 50/30/20 Budget</span>
+            <span class="chip" data-prompt="What are the most effective economic hacks to cut daily campus living expenses without extreme deprivation?">💡 Campus Cost Hacks</span>
+            <span class="chip" data-prompt="From an accounting and financial perspective, should I buy a refurbished laptop or brand-new for college?">💻 Refurbished vs New Laptop</span>
+            <span class="chip" data-prompt="Analyze the financial and opportunity cost of ordering food delivery vs batch meal prepping">🍕 Food Delivery vs Meal Prep</span>
+            <span class="chip" data-prompt="Should I get a student credit card? How to build a credit score without debt traps?">💳 First Credit Card & Score</span>
+            <span class="chip" data-prompt="Can a student start investing with just ₹500 or $20 a month? What is the economic power of starting early?">📈 Micro-Investing ₹500/Month</span>
+            <span class="chip" data-prompt="How large should a student emergency fund be, and where should I safely park this money?">🛡️ Student Emergency Fund</span>
+            {% elif current_user.is_freelancer %}
+            <span class="chip" data-prompt="How do I calculate my minimum hourly billable rate factoring in taxes, overhead and unbillable hours?" style="border-color: rgba(16,185,129,0.35); color: #34d399;">💼 Hourly & Retainer Pricing</span>
+            <span class="chip" data-prompt="What business expenses can I legitimately write off to reduce my taxable income (Schedule C / Section 44ADA)?">🧾 Tax Deductions & Write-Offs</span>
+            <span class="chip" data-prompt="How many months of emergency runway should a freelancer maintain for irregular income cycles?">🛡️ Freelancer Cash Runway</span>
+            <span class="chip" data-prompt="From a CapEx vs OpEx accounting perspective, should I lease or buy my workstation hardware?">💻 Hardware: Lease vs Buy (CapEx)</span>
+            <span class="chip" data-prompt="Explain how to transition from hourly billing to value-based pricing to capture consumer surplus">🤝 Value-Based Pricing</span>
+            <span class="chip" data-prompt="What is client concentration risk and how do I avoid relying too much on one client?">📊 Client Concentration Risk</span>
+            <span class="chip" data-prompt="Audit my business 50/30/20 budget and recommend cashflow optimizations">⚡ Business Cashflow Audit</span>
+            {% elif current_user.is_doom %}
+            <span class="chip" data-prompt="Analyze our Doombot fleet manufacturing burn rate and optimize unit costs" style="border-color: rgba(16,185,129,0.35); color: #34d399;">🤖 Doombot Burn Rate</span>
+            <span class="chip" data-prompt="Assess our Sovereign War Chest runway against international sanctions and Avengers incursions">🛡️ War Chest Runway</span>
+            <span class="chip" data-prompt="Formulate an asymmetric economic warfare plan to financially bankrupt Reed Richards and the Baxter Building">⚔️ Bankrupt Reed Richards</span>
+            <span class="chip" data-prompt="Audit our 50/30/20 Sovereign Budget: Defense vs Conquest R&D">⚡ 50/30/20 Sovereign Rule</span>
+            <span class="chip" data-prompt="How should we allocate treasury capital between Vibranium synthesis and Dark Arts Arcane R&D?">🔬 Vibranium vs Arcane</span>
+            <span class="chip" data-prompt="Forecast Latverian spending and treasury runway for the next 14 days using the temporal transformer">🔮 14-Day Treasury Forecast</span>
+            <span class="chip" data-prompt="Scan the treasury ledger for anomalous leaks, vendor gouging, or traitorous waste">⚠️ Detect Sabotage Leaks</span>
+            <span class="chip" data-prompt="Explain how we can weaponize compound interest and sovereign debt to dominate global markets">📈 Sovereign Compounding</span>
+            {% else %}
+            <span class="chip" data-prompt="Using the 5% unrecoverable cost rule, should I rent or buy a home in current market conditions?" style="border-color: rgba(16,185,129,0.35); color: #34d399;">🏠 Renting vs Buying a Home</span>
+            <span class="chip" data-prompt="Mathematically, should I aggressively pay off moderate-interest debt or invest surplus into index funds?">💳 Pay Debt vs Invest in Index Funds</span>
+            <span class="chip" data-prompt="Audit my personal 50/30/20 monthly budget and identify spending leaks">⚡ Audit 50/30/20 Budget</span>
+            <span class="chip" data-prompt="Demonstrate the mathematics of compound interest on a monthly SIP over 5, 10, and 20 years">📈 Compounding Interest & SIPs</span>
+            <span class="chip" data-prompt="How large should my emergency buffer be, and what is the optimal liquid storage strategy?">🛡️ Sizing Emergency Runway</span>
+            <span class="chip" data-prompt="From a depreciation and opportunity cost perspective, should I buy a new or used car?">🚗 New vs Used Car Economics</span>
+            <span class="chip" data-prompt="Forecast my spending trajectory for the next 14 days using the temporal transformer model">🔮 14-Day Spending Forecast</span>
+            <span class="chip" data-prompt="Scan my expense ledger for statistical anomalies or subscription creep">⚠️ Scan Anomalies & Leaks</span>
+            {% endif %}
+        </div>
+
+        <!-- ChatGPT Input Area (Always Pinned at Bottom, Never Cut Off) -->
+        <div class="chat-input-area" style="flex-shrink: 0; padding: 12px 16px; background: #0d1527; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 10px; align-items: center;">
+            <div style="position: relative; flex: 1;">
+                <input type="text" id="advisorChatInput" class="form-control" 
+                    placeholder="{% if current_user.is_student %}Ask about textbooks (PDFs vs physical), student budgets, campus economics, accounting...{% elif current_user.is_freelancer %}Ask about freelance rates, tax write-offs, business economics, invoicing, CapEx...{% elif current_user.is_doom %}Ask Doom GPT anything (e.g. Can we afford 50 new Doombots? How to crush Baxter Building?)...{% else %}Ask anything about personal finance, economics, accounting, investing, rent vs buy...{% endif %}" 
+                    autocomplete="off" style="padding: 12px 16px; font-size: 14px; background: #070c18; border-color: rgba(16, 185, 129, 0.4); border-radius: var(--radius-md);">
+            </div>
+            <button id="advisorSendBtn" class="btn" style="padding: 12px 22px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); color: #fff; font-weight: 700; border-radius: var(--radius-md); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                <i data-feather="send" style="width: 15px; height: 15px;"></i>
+                <span>Ask Advisor</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Side Drawer: Financial Vitals & Attention (Toggleable, Fits Seamlessly) -->
+    <div id="doomVitalsPanel" style="width: 360px; min-width: 300px; max-width: 380px; flex-shrink: 0; display: none; flex-direction: column; gap: 14px; overflow-y: auto; height: 100%; padding-right: 4px;">
+        
+        <!-- Panel Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 4px;">
+            <span style="font-size: 13px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+                <i data-feather="cpu" style="width: 14px; height: 14px; color: #34d399;"></i>
+                <span>Latverian Neural Analytics</span>
+            </span>
+            <button id="closeVitalsBtn" class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 11px;">✕ Close</button>
+        </div>
+
+        <!-- Health Score Card -->
+        <div class="card" style="border-color: rgba(16, 185, 129, 0.35); padding: 18px; margin: 0;">
+            <div class="card-header" style="margin-bottom: 12px; padding-bottom: 8px;">
+                <div>
+                    <div class="card-title" style="font-size: 15px;">
+                        <i data-feather="award" style="color: #34d399;"></i>
+                        <span>Imperial Vitals Index</span>
+                    </div>
+                </div>
+                <div class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 12px; padding: 2px 8px; border: 1px solid rgba(16, 185, 129, 0.4);">
+                    Grade {{ health_data.grade }}
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 16px; margin: 10px 0;">
+                <div class="health-score-circle" style="--score-pct: {{ health_data.health_score }}; width: 68px; height: 68px; border-color: #10b981; font-size: 20px;">
+                    <div class="health-score-inner" style="color: #34d399; font-size: 20px;">
+                        {{ health_data.health_score }}
+                    </div>
+                </div>
+                <div>
+                    <div style="font-size: 14px; font-weight: 800; color: #fff;">{{ health_data.status_text }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">Evaluated against 8 sovereign pillars</div>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px; font-size: 12px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Surplus Rate (&ge; 20%)</span>
+                    <strong style="color: {% if health_data.savings_rate_pct >= 20 %}#34d399{% else %}var(--warning){% endif %};">
+                        {{ health_data.savings_rate_pct }}%
+                    </strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">State Defense Ratio (&le; 50%)</span>
+                    <strong style="color: {% if health_data.rule_50_30_20.needs.status == 'optimal' %}#34d399{% else %}var(--danger){% endif %};">
+                        {{ health_data.rule_50_30_20.needs.actual_pct }}%
+                    </strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Conquest &amp; R&amp;D (&le; 30%)</span>
+                    <strong style="color: {% if health_data.rule_50_30_20.wants.status == 'optimal' %}#34d399{% else %}var(--warning){% endif %};">
+                        {{ health_data.rule_50_30_20.wants.actual_pct }}%
+                    </strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-secondary);">Monthly War Vault</span>
+                    <strong style="color: #34d399;">
+                        {{ current_user.currency }}{{ "{:,.0f}".format(health_data.net_savings) }}
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transformer Attention Visualizer Card -->
+        <div class="card" style="border-color: rgba(6, 182, 212, 0.3); padding: 18px; margin: 0;">
+            <div class="card-header" style="margin-bottom: 10px; padding-bottom: 8px;">
+                <div class="card-title" style="font-size: 14px;">
+                    <i data-feather="eye" style="color: var(--accent-cyan);"></i>
+                    <span>Multi-Head Attention Weights</span>
+                </div>
+            </div>
+
+            <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+                Live token self-attention weights extracted by PyTorch:
+            </p>
+
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <input type="text" id="attnTestInput" class="form-control" style="font-size: 12px; padding: 6px 10px;" value="Doombot Legion Mk. VII Titanium Alloy">
+                <button id="attnTestBtn" class="btn btn-ai btn-sm" style="white-space: nowrap; padding: 6px 10px; font-size: 11px;">Inspect</button>
+            </div>
+
+            <div id="attnResultCat" style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">
+                Predicted: <strong style="color: #10b981;">Office & Equipment</strong>
+            </div>
+
+            <div id="attnPillWrap" class="token-pills-wrap" style="max-height: 140px; overflow-y: auto;">
+                <!-- Dynamically populated by advisor.js -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    window.currentUserName = "{{ current_user.username }}";
+    window.currentUserRole = "{{ current_user.role }}";
+    window.advisorModelName = "{% if current_user.is_doom %}Doom GPT{% elif current_user.is_student %}Student FinGPT{% elif current_user.is_freelancer %}Pro FinGPT{% else %}FinGPT{% endif %}";
+</script>
+<script src="{{ url_for('static', filename='js/advisor.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Attention Inspector auto-trigger
+        const testBtn = document.getElementById('attnTestBtn');
+        if (testBtn) testBtn.click();
+
+        // Toggle Vitals Panel
+        const toggleBtn = document.getElementById('toggleVitalsBtn');
+        const closeBtn = document.getElementById('closeVitalsBtn');
+        const vitalsPanel = document.getElementById('doomVitalsPanel');
+        const toggleText = document.getElementById('vitalsToggleText');
+
+        function togglePanel() {
+            if (!vitalsPanel) return;
+            const isHidden = vitalsPanel.style.display === 'none' || !vitalsPanel.style.display;
+            vitalsPanel.style.display = isHidden ? 'flex' : 'none';
+            if (toggleText) {
+                toggleText.textContent = isHidden ? 'Hide Vitals & Attention' : 'Show Vitals & Attention';
+            }
+            if (toggleBtn) {
+                toggleBtn.style.background = isHidden ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.08)';
+            }
+            if (window.feather) feather.replace();
+        }
+
+        if (toggleBtn) toggleBtn.addEventListener('click', togglePanel);
+        if (closeBtn) closeBtn.addEventListener('click', togglePanel);
+    });
+</script>
+{% endblock %}
